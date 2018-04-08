@@ -1,0 +1,219 @@
+RAW device creation steps.
+
+
+# vgs
+  VG #PV #LV #SN Attr VSize VFree 
+  crashvg 1 1 0 wz--n- 69.99g 1012.00m
+  rootvg 1 4 0 wz--n- 53.78g 25.78g
+  sybasevg 1 27 0 wz--n- 899.99g 234.30g
+
+# lvcreate -L 20G -n data05 sybasevg
+  Logical volume "data05" created
+
+# lvs | grep -i data
+  data06 sybasevg -wi-ao 20.00g 
+  data07 sybasevg -wi-a- 20.00g 
+                                 
+
+# lvcreate -L 20G -n data06 sybasevg
+  Logical volume "data06" created
+
+# lvcreate -L 20G -n data07 sybasevg
+  Logical volume "data07" created
+
+RAW device mapping to /dev/raw/rawXX
+
+# raw /dev/raw/raw13 /dev/sybasevg/data06
+/dev/raw/raw13: bound to major 253, minor 33
+
+# raw /dev/raw/raw14 /dev/sybasevg/data07
+/dev/raw/raw14: bound to major 253, minor 34
+
+# chown sybase:sybase /dev/raw/raw14
+
+# chown sybase:sybase /dev/raw/raw13
+# ls -l 
+total 0
+crw-rw-rw- 1 sybase sybase 162, 1 Mar 14 16:22 raw1
+crw-rw-rw- 1 sybase sybase 162, 10 Mar 14 16:22 raw10
+crw-rw-rw- 1 sybase sybase 162, 11 Mar 14 16:22 raw11
+crw-rw---- 1 sybase sybase 162, 12 Mar 14 16:15 raw12
+crw-rw---- 1 sybase sybase 162, 13 Mar 14 16:22 raw13
+crw-rw---- 1 sybase sybase 162, 14 Mar 14 16:22 raw14
+
+Note: Add a entry in /etc/rc3.d/S99wrawmapping file
+
+===============================================
+vgextend eqzln11_vg /dev/emcpowerbe
+
+lvcreate -L 20G -n DATA_07 eqzln11_vg
+
+raw /dev/raw/raw53 /dev/eqzln11_vg/DATA_07
+
+chown sybase:sybase /dev/raw/raw53
+
+Check from where it is called in /etc/rc3.d -- S99wrawmapping/S56rawdevices
+
+[Dev root @ eqdb3d /etc/rc3.d]
+# cat S56rawdevices
+#!/bin/bash
+#
+# rawdevices       This shell script assignes rawdevices to block devices
+#
+# chkconfig: 345 56 44
+# description: This scripts assignes raw devices to block devices \
+#              (such as hard drive partitions). This is for the use \
+#              of applications such as Oracle. You can set up the \
+#              raw device to block device mapping by editing \
+#              the file /etc/sysconfig/rawdevices. 
+#
+# config: /etc/sysconfig/rawdevices
+
+[ -f /bin/raw ] || exit 0
+[ -f /etc/sysconfig/rawdevices ] || exit 0
+# Exit if the file just has the default comments.
+LC_ALL=C /bin/egrep -q -v "^ *#" /etc/sysconfig/rawdevices 2>/dev/null || exit 0
+
+. /etc/init.d/functions
+
+function assign_raw()
+{
+   LC_ALL=C egrep -v '^ *#' /etc/sysconfig/rawdevices |
+   while read RAW BLOCK; do 
+     if [ -n "$RAW" -a -n "$BLOCK" ]; then 
+         rawdirname=${RAW%/*}
+         if [ "$rawdirname" = "/dev" -a -d /dev/raw ]; then
+           echo $"  Please correct your /etc/sysconfig/rawdevices:"
+           echo $"     rawdevices are now located in the directory /dev/raw/ "
+           echo $"  If the command 'raw' still refers to /dev/raw as a file."
+           echo $"   you'll have to upgrade your util-linux package"
+           exit 0
+         fi
+         if [ "$rawdirname" = "/dev/raw" -a -f /dev/raw ]; then
+           echo $"  Please correct your /etc/sysconfig/rawdevices:"
+           echo $"     rawdevices are now located in the directory /dev/raw/ "
+           echo $"  If the command 'raw' still refers to /dev/raw as a file."
+           echo $"   you'll have to upgrade your util-linux package"
+           exit 0
+         fi
+
+       echo "           $RAW  -->   $BLOCK"; 
+       raw $RAW $BLOCK
+     fi
+   done
+}
+
+# See how we were called.
+case "$1" in
+  start)
+        # Assign devices
+        echo $"Assigning devices: "
+        assign_raw
+        echo $"done"
+        ;;
+  stop)
+        # No action to be taken here
+        ;;
+
+  status)
+        ID=`id -u`
+        if [ $ID -eq 0 ]; then 
+          raw -qa
+        else
+          echo $"You need to be root to use this command ! "
+        fi
+        ;;
+
+  restart|reload)
+        $0 start
+        ;;
+
+  *)
+        echo $"Usage: $0 {start|stop|status|restart}"
+        exit 1
+esac
+
+exit 0
+[Dev root @ eqdb3d /etc/rc3.d]
+========================================================
+
+Here it calls from /etc/sysconfig/rawdevices hence add an entry in the below file 
+
+file name : /etc/sysconfig/rawdevices
+
+eqdb3d /etc/rc3.d]
+# cat /etc/sysconfig/rawdevices
+# raw device bindings
+# format:  <rawdev> <major> <minor>
+#          <rawdev> <blockdev>
+# example: /dev/raw/raw1 /dev/sda1
+#          /dev/raw/raw2 8 5
+# Please allocate raw devices of EQCOPDEV2_DEV within range of 1-20
+/dev/raw/raw1 /dev/eqcopdev2_vg/DATA_01
+/dev/raw/raw2 /dev/eqcopdev2_vg/DATA_02
+/dev/raw/raw3 /dev/eqcopdev2_vg/LOG_01
+/dev/raw/raw4 /dev/eqcopdev2_vg/LOG_02
+/dev/raw/raw5 /dev/eqcopdev2_vg/master
+/dev/raw/raw6 /dev/eqcopdev2_vg/sybsystemprocs
+# RETIRED - Please allocate raw devices of EQIBEXSINT_DEV within range of 21-40
+# Please allocate raw devices of EQZLN11_DEV within range of 41-60
+/dev/raw/raw41 /dev/eqzln11_vg/DATA_01
+/dev/raw/raw42 /dev/eqzln11_vg/DATA_02
+/dev/raw/raw43 /dev/eqzln11_vg/DATA_03
+/dev/raw/raw44 /dev/eqzln11_vg/DATA_04
+/dev/raw/raw45 /dev/eqzln11_vg/DATA_05
+/dev/raw/raw46 /dev/eqzln11_vg/DATA_06
+/dev/raw/raw47 /dev/eqzln11_vg/LOG_01
+/dev/raw/raw48 /dev/eqzln11_vg/LOG_02
+/dev/raw/raw49 /dev/eqzln11_vg/master
+/dev/raw/raw50 /dev/eqzln11_vg/sybsystemprocs
+/dev/raw/raw51 /dev/eqzln11_vg/LOG_03
+/dev/raw/raw52 /dev/eqzln11_vg/LOG_04
+/dev/raw/raw53 /dev/eqzln11_vg/DATA_07
+# Please allocate raw devices of EQZLN15_DEV within range of 61-80
+/dev/raw/raw61 /dev/eqzln15_vg/DATA_01
+/dev/raw/raw62 /dev/eqzln15_vg/DATA_02
+/dev/raw/raw63 /dev/eqzln15_vg/DATA_03
+/dev/raw/raw64 /dev/eqzln15_vg/DATA_04
+/dev/raw/raw65 /dev/eqzln15_vg/LOG_01
+/dev/raw/raw66 /dev/eqzln15_vg/LOG_02
+/dev/raw/raw67 /dev/eqzln15_vg/LOG_03
+/dev/raw/raw68 /dev/eqzln15_vg/LOG_04
+/dev/raw/raw69 /dev/eqzln15_vg/master
+/dev/raw/raw70 /dev/eqzln15_vg/sybsystemprocs
+# Please allocate raw devices of EQZLN10_DEV within range of 81-110
+/dev/raw/raw81 /dev/eqzln10_vg/DATA_01
+/dev/raw/raw82 /dev/eqzln10_vg/DATA_02
+/dev/raw/raw83 /dev/eqzln10_vg/DATA_03
+/dev/raw/raw84 /dev/eqzln10_vg/DATA_04
+/dev/raw/raw85 /dev/eqzln10_vg/DATA_05
+/dev/raw/raw86 /dev/eqzln10_vg/DATA_06
+/dev/raw/raw87 /dev/eqzln10_vg/DATA_07
+/dev/raw/raw88 /dev/eqzln10_vg/DATA_08
+/dev/raw/raw89 /dev/eqzln10_vg/DATA_09
+/dev/raw/raw90 /dev/eqzln10_vg/DATA_10
+/dev/raw/raw91 /dev/eqzln10_vg/DATA_11
+/dev/raw/raw92 /dev/eqzln10_vg/DATA_12
+/dev/raw/raw93 /dev/eqzln10_vg/DATA_13
+/dev/raw/raw94 /dev/eqzln10_vg/DATA_14
+/dev/raw/raw95 /dev/eqzln10_vg/DATA_15
+/dev/raw/raw96 /dev/eqzln10_vg/DATA_16
+/dev/raw/raw97 /dev/eqzln10_vg/LOG_01
+/dev/raw/raw98 /dev/eqzln10_vg/LOG_02
+/dev/raw/raw99 /dev/eqzln10_vg/LOG_03
+/dev/raw/raw100 /dev/eqzln10_vg/master
+/dev/raw/raw101 /dev/eqzln10_vg/sybsystemprocs
+# Please allocate raw devices of AREA51 within range of 110
+/dev/raw/raw110 /dev/area51_vg/DATA_01
+/dev/raw/raw111 /dev/area51_vg/DATA_02
+/dev/raw/raw112 /dev/area51_vg/DATA_03
+/dev/raw/raw113 /dev/area51_vg/DATA_04
+/dev/raw/raw114 /dev/area51_vg/DATA_05
+/dev/raw/raw115 /dev/area51_vg/DATA_06
+/dev/raw/raw116 /dev/area51_vg/LOG_01
+/dev/raw/raw117 /dev/area51_vg/master
+/dev/raw/raw118 /dev/area51_vg/sybsystemprocs
+[Dev root @ eqdb3d /etc/rc3.d]
+
+
+================================================

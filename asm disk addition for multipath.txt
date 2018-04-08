@@ -1,0 +1,297 @@
+1. check the free disk details by running the script below.
+
+/net/ccua/export/scripts/WTS/total_san.lvm_asm.sh 
+
+for eg:
+
+[COB root @ fbblnxmwdb06c ~]
+# /net/ccua/export/scripts/WTS/total_san.lvm_asm.sh 
+==========================
+SAN DETAILS FOR fbblnxmwdb06c
+==========================
+Total Number of SAN disks (includes R2/BCV disk count) : 48
+R2 + BCV Disk count = 0 (0 + 0)
+Total SAN space  : 11335GB
+6 x 1104000KB
+42 x 282839040KB
+ACTIVE LVM DISKS  : 3
+ASM DISKS  : 45
+[COB root @ fbblnxmwdb06c ~]
+
+
+here in the above example the total san is 48 disks out of which none are free
+
+lvm disks( disks available under pvs) - 3
+disks assigned to asm - 45
+
+so total all 48 disks are assigned.
+
+
+
+2.the second step is to segregate the free disks if available in the server (depending on previous output) from the used disks.
+
+a. check if the server is running with powerpath or multipath. if the server is in multipath then the below command will list all the disks available on the server.
+
+multipath -ll
+
+it is better to grep only with mpath with which the disk name usually starts.
+
+
+eg:
+
+[COB root @ fbblnxmwdb06c ~]
+# multipath -ll | grep -i mpath
+mpathak (360000970000195702100533031383031) dm-74 EMC,SYMMETRIX
+mpathr (360000970000195701347533031333646) dm-16 EMC,SYMMETRIX
+mpathe (360000970000195702100533030314539) dm-4 EMC,SYMMETRIX
+mpathaw (360000970000195702100533031383039) dm-86 EMC,SYMMETRIX
+mpathaj (360000970000195702100533031374331) dm-73 EMC,SYMMETRIX
+mpathq (360000970000195701347533031333437) dm-8 EMC,SYMMETRIX
+mpathd (360000970000195702100533030314631) dm-5 EMC,SYMMETRIX
+mpathav (360000970000195702100533031383239) dm-85 EMC,SYMMETRIX
+mpathai (360000970000195702100533031374439) dm-72 EMC,SYMMETRIX
+mpathp (360000970000195701347533031333637) dm-13 EMC,SYMMETRIX
+mpathc (360000970000195702100533030314531) dm-3 EMC,SYMMETRIX
+mpathau (360000970000195702100533031374431) dm-84 EMC,SYMMETRIX
+mpathah (360000970000195702100533031374531) dm-71 EMC,SYMMETRIX
+mpatho (360000970000195701347533031333546) dm-12 EMC,SYMMETRIX
+mpathb (360000970000195702100533030314439) dm-2 EMC,SYMMETRIX
+mpathat (360000970000195702100533031383339) dm-83 EMC,SYMMETRIX
+mpathag (360000970000195701347533031333846) dm-34 EMC,SYMMETRIX
+mpathn (360000970000195701347533031333346) dm-6 EMC,SYMMETRIX
+mpathas (360000970000195702100533031374639) dm-82 EMC,SYMMETRIX
+mpathz (360000970000195701347533031333446) dm-9 EMC,SYMMETRIX
+mpathaf (360000970000195701347533031334146) dm-42 EMC,SYMMETRIX
+mpathm (360000970000195702100533030323139) dm-24 EMC,SYMMETRIX
+mpathar (360000970000195702100533031374631) dm-81 EMC,SYMMETRIX
+mpathy (360000970000195701347533032463135) dm-54 EMC,SYMMETRIX
+mpathae (360000970000195701347533032463132) dm-50 EMC,SYMMETRIX
+mpathl (360000970000195701347533031333537) dm-10 EMC,SYMMETRIX
+mpathaq (360000970000195702100533031383231) dm-80 EMC,SYMMETRIX
+mpathx (360000970000195701347533031333937) dm-36 EMC,SYMMETRIX
+mpathad (360000970000195701347533031333837) dm-32 EMC,SYMMETRIX
+mpathk (360000970000195702100533030323239) dm-31 EMC,SYMMETRIX
+mpathap (360000970000195702100533031383331) dm-79 EMC,SYMMETRIX
+mpathw (360000970000195701347533031333946) dm-38 EMC,SYMMETRIX
+mpathac (360000970000195701347533031334137) dm-39 EMC,SYMMETRIX
+mpathj (360000970000195702100533030323231) dm-29 EMC,SYMMETRIX
+mpathao (360000970000195702100533031374339) dm-78 EMC,SYMMETRIX
+mpathv (360000970000195701347533032463130) dm-47 EMC,SYMMETRIX
+mpathab (360000970000195701347533032463131) dm-45 EMC,SYMMETRIX
+mpathi (360000970000195702100533030323131) dm-25 EMC,SYMMETRIX
+mpathan (360000970000195702100533031374539) dm-77 EMC,SYMMETRIX
+mpathu (360000970000195701347533032463133) dm-51 EMC,SYMMETRIX
+mpathaa (360000970000195701347533031333746) dm-20 EMC,SYMMETRIX
+mpathh (360000970000195702100533030323039) dm-15 EMC,SYMMETRIX
+mpatham (360000970000195702100533031383131) dm-76 EMC,SYMMETRIX
+mpatht (360000970000195701347533032463134) dm-53 EMC,SYMMETRIX
+mpathg (360000970000195702100533030323031) dm-11 EMC,SYMMETRIX
+mpathal (360000970000195702100533031383139) dm-75 EMC,SYMMETRIX
+mpaths (360000970000195701347533031333737) dm-19 EMC,SYMMETRIX
+mpathf (360000970000195702100533030314639) dm-7 EMC,SYMMETRIX
+
+
+you can see the list of disks with the scsi id details.
+
+360000970000195702100533030314639 - scsi id of disk mpathf
+
+once you recieve the output copy it to word/excel as your need.
+
+b. now run the below command.
+
+pvs
+
+it will display the disks assigned to lvm.
+
+eg:
+
+[COB root @ fbblnxmwdb06c ~]
+# pvs
+  Configuration setting "activation/thin_check_executable" unknown.
+  Configuration setting "activation/thin_check_options" unknown.
+  PV                 VG       Fmt  Attr PSize   PFree  
+  /dev/mapper/mpathn oraclevg lvm2 a--u 269.73g  34.47g
+  /dev/mapper/mpathq oraclevg lvm2 a--u 269.73g  69.73g
+  /dev/mapper/mpathz oraclevg lvm2 a--u 269.73g      0 
+  /dev/sda2          rootvg   lvm2 a--u 837.88g 773.88g
+  /dev/sdb           crashvg  lvm2 a--u   1.09t      0 
+
+
+in above example mpathn,mpathq,mpathz are the disks added to lvm.( added to lvm means the disks are already in use). now compare with the total disk output obtained earlier and remove them from the list as they are already in use.
+
+c.now it is the turn to check the disks assigned to asm. the disks are assigned to asm by updating the below mentioned file.
+
+/etc/udev/rules.d/99-oracle.rules
+
+eg:
+
+[COB root @ fbblnxmwdb06c ~]
+# cat /etc/udev/rules.d/99-oracle.rules
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533030323031",NAME="asmdisk/asmdisk1",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533030323039",NAME="asmdisk/asmdisk2",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533030323131",NAME="asmdisk/asmdisk3",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533030323139",NAME="asmdisk/asmdisk4",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533030323231",NAME="asmdisk/asmdisk5",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533030323239",NAME="asmdisk/asmdisk6",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533032463130",NAME="asmdisk/asmdisk7",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533032463131",NAME="asmdisk/asmdisk8",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533032463132",NAME="asmdisk/asmdisk9",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533032463133",NAME="asmdisk/asmdisk10",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533032463134",NAME="asmdisk/asmdisk11",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533032463135",NAME="asmdisk/asmdisk12",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533031333537",NAME="asmdisk/asmdisk13",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533031333546",NAME="asmdisk/asmdisk14",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533031333637",NAME="asmdisk/asmdisk15",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533031333646",NAME="asmdisk/asmdisk16",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533031333737",NAME="asmdisk/asmdisk17",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533031333746",NAME="asmdisk/asmdisk18",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533031333837",NAME="asmdisk/asmdisk19",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533031333846",NAME="asmdisk/asmdisk20",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533031333937",NAME="asmdisk/asmdisk21",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533031333946",NAME="asmdisk/asmdisk22",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533031334137",NAME="asmdisk/asmdisk23",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195701347533031334146",NAME="asmdisk/asmdisk24",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533030314439",NAME="asmdisk/asmdisk25",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533030314531",NAME="asmdisk/asmdisk26",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533030314539",NAME="asmdisk/asmdisk27",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533030314631",NAME="asmdisk/asmdisk28",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533030314639",NAME="asmdisk/asmdisk29",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031374531",NAME="asmdisk/asmdisk30",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031374439",NAME="asmdisk/asmdisk31",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031374331",NAME="asmdisk/asmdisk32",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031383031",NAME="asmdisk/asmdisk33",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031383139",NAME="asmdisk/asmdisk34",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031383131",NAME="asmdisk/asmdisk35",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031374539",NAME="asmdisk/asmdisk36",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031374339",NAME="asmdisk/asmdisk37",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031383331",NAME="asmdisk/asmdisk38",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031383231",NAME="asmdisk/asmdisk39",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031374631",NAME="asmdisk/asmdisk40",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031374639",NAME="asmdisk/asmdisk41",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031383339",NAME="asmdisk/asmdisk42",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031374431",NAME="asmdisk/asmdisk43",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031383239",NAME="asmdisk/asmdisk44",OWNER="oracle",GROUP="dba",MODE="0640"
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533031383039",NAME="asmdisk/asmdisk45",OWNER="oracle",GROUP="dba",MODE="0640"
+[COB root @ fbblnxmwdb06c ~]
+
+
+here in above output there are 45 disks which are added to asm. they are assigned using scsi id.
+
+take the scsi id and get the disk details by grepping it from multipath -ll.
+
+once you get all the disk details you have to again compare the output with the total disk and remove the similar ones as they are already assigned to asm.
+
+d. once all the used disks are removed you will get the free disks which can be used in any way either for asm or for lvm.
+
+
+3.now after getting the free disks the next step is to create a partition on those disks.
+
+follow below steps to create the partition.
+
+a. check under multipath -ll | grep -i (disk name) for the device name.
+
+eg:
+
+mpathaw (360000970000195702100533031383039) dm-86 EMC,SYMMETRIX
+
+here dm-86 is the device name of disk mpathaw
+
+b. fdisk -l /dev/(device name)
+
+eg: 
+
+[COB root @ fbblnxmwdb06c /dev/mapper]
+# fdisk -l /dev/dm-86
+
+Disk /dev/dm-86: 289.6 GB, 289627176960 bytes
+255 heads, 63 sectors/track, 35211 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0xdc9aa935
+
+      Device Boot      Start         End      Blocks   Id  System
+/dev/dm-86p1               1       35211   282832326   83  Linux
+[COB root @ fbblnxmwdb06c /dev/mapper]
+
+
+here if you see it is partitioned . the device is partitioned as dm-86p1. so you need not partition it separately .
+
+
+in case if it is not partitioned then follow below steps.
+
+c. fdisk disk name
+
+eg:fdisk mpathaw
+
+once the command is executed it asks for certain questions.
+
+[COB root @ fbblnxmwdb06c /dev/mapper]
+# fdisk mpathaw
+
+WARNING: DOS-compatible mode is deprecated. It's strongly recommended to
+         switch off the mode (command 'c') and change display units to
+         sectors (command 'u').
+
+Command (m for help): 
+
+provide the below entries one by one.
+
+n
+p
+1
+default(enter)
+default(enter)
+w
+
+
+
+once this is done your disk is partitioned and ready to use.
+
+
+4. now run partprobe. partprobe usually takes time and is meant to clean the disk and making it ready to assign.
+
+
+5. once partprobe is complete take a backup of /etc/udev/rules.d/99-oracle.rules
+
+
+once backup is done edit the file /etc/udev/rules.d/99-oracle.rules with the new disks details.
+
+
+before editing take one sample entry 
+
+eg: 
+
+KERNEL=="dm-*",ENV{DM_UUID}=="part1-mpath-360000970000195702100533030323031",NAME="asmdisk/asmdisk1",OWNER="oracle",GROUP="dba",MODE="0640"
+
+here take the scsi id of the free disk and include in the scsi id column and name it in the regular orderbased on the last entry (asmdidk1)
+
+once the entries for all the free disks are ready just add those entries to the rules file.
+
+6. once this is done we have to reload the rules file.
+
+run the below command to reload the rules file. but before reloading make sure the disks are not already assigned to asm by checking under /dev/asmdisk
+
+udevadm control --reload-rules;udevadm trigger --type=devices --action=change;start_udev
+
+
+once the above command is executed it has to show ok status.
+
+
+after that go to /dev/asmdisk path and run ls -lrt
+
+
+the new disks have to be updated with oracle as permission.
+
+
+
+7. once everything is fine release the server.
+
+
+this completes the activity of asm disk addition in multipth.
+
+
+
+
+
+NOTE:  This is only for knowledge purpose. Please do not implement it without seniors advise.

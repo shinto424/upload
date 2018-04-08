@@ -1,0 +1,153 @@
+****************************************************************************************
+Linux 6.6 upgrade on database server ( Changing powerpath to multipath )
+****************************************************************************************
+
+
+1.) Run script to save off information before hand
+
+cd /home/ca02038/AUTOMATED_INFO_SAVING/Solaris_AIX_Linux
+
+vi server_list.txt
+
+./do_it_all.sh
+
+
+2.) Disable powerpath and reboot the machine
+
+
+mv /etc/init.d/PowerPath /etc/init.d/PowerPath.bkp
+
+
+{{Comment all the SAN and NAS file system. and reboot the machine
+
+cp -pi /etc/fstab /etc/fstab_bkp
+
+vi /etc/fstab
+
+comment using #
+
+cd /etc/init.d
+
+mv ohasd ohasd_old
+
+cd /etc/rc3.d
+
+mv S96ohasd sS96ohasd}}
+
+
+Passwd root
+
+reboot
+
+
+3.) Comment all the SAN and NAS file system.
+
+cp -pi /etc/fstab /etc/fstab_bkp
+
+vi /etc/fstab
+
+comment using #
+
+
+4.) ONce the server is back online, Remove the powerpath rpm.
+
+yum remove EMCpower*
+
+
+5.) Change the repos under /etc/yum.repos.d
+
+	a) edit the /etc/yum.repos.d/soe-prod.repo config file,
+
+		change the version number 
+
+		for eg: 
+
+		if the version number is “4” replace with “6”
+     		( the changes should be made in three places.)
+
+	
+	b) cp -p /etc/yum.repos.d/soe-prod.repo /etc/yum.repos.d/soe-prod.repo.SAVED.`/bin/date '+%Y%m%d'`;
+      
+	c) In /etc/yum.repos.d/soe-prod.repo filwe, change the number.
+
+		 # vi /etc/yum.repos.d/soe-prod.repo;
+               		 /4
+                	
+			R6
+                	n
+                	.
+                	n
+                	.
+                	:wq!
+
+6.) Run yum update 
+
+yum update
+
+For below error:
+
+Error: Package: SOE-product-san-stack-cluster-RHEL6_64-4.1-A0.noarch (@soe6u4)
+           Requires: redhat-release-server < 6Server-6.5
+           Removing: redhat-release-server-6Server-6.4.0.4.el6.x86_64 (@soe6u4-x86_64/6.5)
+               redhat-release-server = 6Server-6.4.0.4.el6
+           Updated By: redhat-release-server-6Server-6.5.0.1.el6.x86_64 (soe6u5)
+               redhat-release-server = 6Server-6.5.0.1.el6
+ You could try using --skip-broken to work around the problem
+ You could try running: rpm -Va --nofiles --nodigest
+
+Follow the below steps:
+-------------------------------------------------------------------
+yum remove SOE-product-san-stack-cluster-RHEL6_64-4.1-A0.noarch
+
+then do
+
+yum update
+
+
+7.) install the sangria on the server.
+
+yum install sangria
+
+8.) Copy the rule files.
+
+cp -pi 99-oracle.rules 99-oracle.rules_sep30_bkp
+
+cp -pi /var/tmp/sa/newrules.file /etc/udev/rules.d/99-oracle.rules
+
+
+9.) Passwd root;reboot
+
+
+10.) once the server is back on-line do the check outs.
+
+a) ls -l /dev/asmdisk/asmdisk*
+
+b) pvs;lvs;vgs
+
+cd /etc/init.d
+
+mv ohasd_old ohasd
+
+cd /etc/rc3.d
+
+mv sS96ohasd S96ohasd
+
+vi /etc/fstab
+
+Uncomment by removing 
+
+c) uncomment the /etc/fstab
+
+mount -a
+
+Reboot host
+
+d) /opt/sangria/bin/sanstack_verify.pl
+
+e) /net/ccua/export/scripts/ca02038/compare_after_reboot_on_this_server.sh
+
+f) /net/ccua/export/scripts/healthcheck
+
+g) /opt/rinfo/bin/rinfosend
+
+
