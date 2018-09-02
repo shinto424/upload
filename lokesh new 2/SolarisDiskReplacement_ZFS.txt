@@ -1,0 +1,185 @@
+
+
+
+Find the Errors using iostat -En 
+c0t5000C50047BA4C73d0 Soft Errors: 93 Hard Errors: 4 Transport Errors: 0 
+Vendor: SEAGATE  Product: ST930005SSUN300G Revision: 0606 Serial No: 1201Q1REFJ 
+Size: 300.00GB <300000000000 bytes>
+Media Error: 2 Device Not Ready: 0 No Device: 0 Recoverable: 93 
+Illegal Request: 0 Predictive Failure Analysis: 0 
+ 
+
+ 
+ c0t5000C50047BA4C73d0
+ 
+ 
+bash-3.2# echo | format | grep c0t5000
+       0. c0t5000C50047BA4C73d0 <SUN300G cyl 46873 alt 2 hd 20 sec 625>  solaris
+       1. c0t5000C50047BAC37Bd0 <SUN300G cyl 46873 alt 2 hd 20 sec 625>
+       2. c0t5000C50047BAD823d0 <SUN300G cyl 46873 alt 2 hd 20 sec 625>  solaris
+       3. c0t5000C50047BAED6Fd0 <SUN300G cyl 46873 alt 2 hd 20 sec 625>  solaris
+       4. c0t5000C50047BB102Fd0 <SUN300G cyl 46873 alt 2 hd 20 sec 625>
+       5. c0t5000C50047BB2613d0 <SUN300G cyl 46873 alt 2 hd 20 sec 625>  solaris
+	   
+	   
+	   
+bash-3.2# 
+
+
+AVAILABLE DISK SELECTIONS:
+       0. c0t5000C50047BA4C73d0 <SUN300G cyl 46873 alt 2 hd 20 sec 625>  solaris
+          /scsi_vhci/disk@g5000c50047ba4c73
+       1. c0t5000C50047BAC37Bd0 <SUN300G cyl 46873 alt 2 hd 20 sec 625>
+          /scsi_vhci/disk@g5000c50047bac37b
+       2. c0t5000C50047BAD823d0 <SUN300G cyl 46873 alt 2 hd 20 sec 625>  solaris
+          /scsi_vhci/disk@g5000c50047bad823
+       3. c0t5000C50047BAED6Fd0 <SUN300G cyl 46873 alt 2 hd 20 sec 625>  solaris
+          /scsi_vhci/disk@g5000c50047baed6f
+       4. c0t5000C50047BB102Fd0 <SUN300G cyl 46873 alt 2 hd 20 sec 625>
+          /scsi_vhci/disk@g5000c50047bb102f
+       5. c0t5000C50047BB2613d0 <SUN300G cyl 46873 alt 2 hd 20 sec 625>  solaris
+          /scsi_vhci/disk@g5000c50047bb2613
+
+cfgadm -al		  
+c2                             scsi-sas     connected    configured   unknown
+c2::w5000c50047ba4c71,0        disk-path    connected    configured   unknown
+c3                             scsi-sas     connected    configured   unknown
+c3::w5000c50047baed6d,0        disk-path    connected    configured   unknown
+c4                             scsi-sas     connected    configured   unknown
+c4::w5000c50047bac379,0        disk-path    connected    configured   unknown
+c10                            scsi-sas     connected    configured   unknown
+c10::w5000c50047bad821,0       disk-path    connected    configured   unknown
+c11                            scsi-sas     connected    configured   unknown
+c11::w5000c50047bb102d,0       disk-path    connected    configured   unknown
+c12                            scsi-sas     connected    configured   unknown
+c12::w5000c50047bb2611,0       disk-path    connected    configured   unknown
+c13                            scsi-sas     connected    unconfigured unknown
+
+Detach the disk from existing pool
+
+zpool detach rpool c0t5000C50047BA4C73d0s0
+
+config:
+
+        NAME                         STATE     READ WRITE CKSUM
+        rpool                        ONLINE       0     0     0
+          mirror-0                   ONLINE       0     0     0
+            c0t5000C50047BAD823d0s0  ONLINE       0     0     0cfgadm -al disks 
+            c0t5000C50047BAED6Fd0s0  ONLINE       0     0     0
+
+
+			
+bash-3.2# 
+
+
+4945   Wed Jul 18 04:37:02 2018  Fault     Fault     critical
+       Fault detected at time = Wed Jul 18 04:48:00 2018. The suspect component: /SYS/MB/HDD0 has fault.io.disk.predictive-failure with probability=100.
+       Refer to http://support.oracle.com/msg/DISK-8000-0X for details.
+
+bash-3.2# diskinfo -a
+
+
+Enclosure path:         1203BDY6C0-physical-hba-0
+Chassis Serial Number:  1203BDY6C0-physical-hba-0
+Chassis Model:          ORCL,SPARC-T4-4
+
+Label      Disk name               Vendor   Product          Vers
+---------- ----------------------  -------- ---------------- ----
+/SYS/MB/HDD0 c0t5000C50047BA4C73d0   SEAGATE  ST930005SSUN300G 0606
+/SYS/MB/HDD1 c0t5000C50047BAED6Fd0   SEAGATE  ST930005SSUN300G 0606
+/SYS/MB/HDD2 c0t5000C50047BAC37Bd0   SEAGATE  ST930005SSUN300G 0606
+
+bash-3.2# diskinfo -a -p 
+
+
+
+Label      Disk name               Vendor   Product          Vers
+---------- ----------------------  -------- ---------------- ----
+/SYS/MB/HDD0 c0t5000C50047BA4C73d0   SEAGATE  ST930005SSUN300G 0606
+        Physical path
+        -------------------------------- 
+        0: /pci@400/pci@1/pci@0/pci@0/LSI,sas@0/iport@1/disk@w5000c50047ba4c71,0
+
+/SYS/MB/HDD1 c0t5000C50047BAED6Fd0   SEAGATE  ST930005SSUN300G 0606
+        Physical path
+        -------------------------------- 
+        0: /pci@400/pci@1/pci@0/pci@0/LSI,sas@0/iport@2/disk@w5000c50047baed6d,0
+
+/SYS/MB/HDD2 c0t5000C50047BAC37Bd0   SEAGATE  ST930005SSUN300G 0606
+        Physical path
+        -------------------------------- 
+        0: /pci@400/pci@1/pci@0/pci@0/LSI,sas@0/iport@4/disk@w5000c50047bac379,0
+
+
+
+		
+		
+		
+		
+		
+		
+		bash-3.2# diskinfo -a -a
+
+
+Enclosure path:         1203BDY6C0-physical-hba-0
+Chassis Serial Number:  1203BDY6C0-physical-hba-0
+Chassis Model:          ORCL,SPARC-T4-4
+
+Label      Disk name               Vendor   Product          Vers
+---------- ----------------------  -------- ---------------- ----
+/SYS/MB/HDD0 c0t5000C50047BA4C73d0   SEAGATE  ST930005SSUN300G 0606
+/SYS/MB/HDD1 c0t5000C50047BAED6Fd0   SEAGATE  ST930005SSUN300G 0606
+/SYS/MB/HDD2 c0t5000C50047BAC37Bd0   SEAGATE  ST930005SSUN300G 0606
+
+bash-3.2# diskinfo -a -p
+
+
+Enclosure path:         1203BDY6C0-physical-hba-0
+Chassis Serial Number:  1203BDY6C0-physical-hba-0
+Chassis Model:          ORCL,SPARC-T4-4
+
+Label      Disk name               Vendor   Product          Vers
+---------- ----------------------  -------- ---------------- ----
+/SYS/MB/HDD0 c0t5000C50047BA4C73d0   SEAGATE  ST930005SSUN300G 0606
+        Physical path
+        -------------------------------- 
+        0: /pci@400/pci@1/pci@0/pci@0/LSI,sas@0/iport@1/disk@w5000c50047ba4c71,0
+
+/SYS/MB/HDD1 c0t5000C50047BAED6Fd0   SEAGATE  ST930005SSUN300G 0606
+        Physical path
+        -------------------------------- 
+        0: /pci@400/pci@1/pci@0/pci@0/LSI,sas@0/iport@2/disk@w5000c50047baed6d,0
+
+/SYS/MB/HDD2 c0t5000C50047BAC37Bd0   SEAGATE  ST930005SSUN300G 0606
+        Physical path
+        -------------------------------- 
+        0: /pci@400/pci@1/pci@0/pci@0/LSI,sas@0/iport@4/disk@w5000c50047bac379,0
+
+
+bash-3.2# cfgadm -al| grep w5000c50047ba4c71
+c2::w5000c50047ba4c71,0        disk-path    connected    configured   unknown
+bash-3.2# cfgadm -c unconfigure c2::w5000c50047ba4c71,0
+bash-3.2# cfgadm -al| grep w5000c50047ba4c71
+c2::w5000c50047ba4c71,0        disk-path    connected    unconfigured unknown
+bash-3.2# uname -a
+SunOS wasmwprod2 5.10 Generic_150400-52 sun4v sparc sun4v
+bash-3.2# 
+
+
+
+
+After replacement
+
+ Label the disk once the disk is repalced using below procedure 
+ 
+ 
+ 
+
+		  config:
+
+        NAME                         STATE     READ WRITE CKSUM
+        rpool                        ONLINE       0     0     0
+          mirror-0                   ONLINE       0     0     0
+            c0t5000C50047BAD823d0s0  ONLINE       0     0     0
+            c0t5000C50047BAED6Fd0s0  ONLINE       0     0     0
+            c0t5000CCA02524A6BCd0s0  ONLINE       0     0     0  (resilvering)

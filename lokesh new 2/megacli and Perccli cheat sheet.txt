@@ -1,0 +1,241 @@
+Below is the few commands for megacli and Perccli
+
+
+Megacli and Megacli64 binary can be found in /opt/MegaRaid…
+
+
+Controller information
+
+MegaCli -AdpAllInfo -aALL
+MegaCli -CfgDsply -aALL
+MegaCli -AdpEventLog -GetEvents -f events.log -aALL && cat events.log
+
+Enclosure information
+
+MegaCli -EncInfo -aALL
+
+Virtual drive information
+
+MegaCli -LDInfo -Lall -aALL
+
+Physical drive information
+
+MegaCli -PDList -aALL
+MegaCli -PDInfo -PhysDrv [E:S] -aALL
+
+Battery backup information
+
+MegaCli -AdpBbuCmd -aALL
+
+Controller management
+
+Silence active alarm
+
+MegaCli -AdpSetProp AlarmSilence -aALL
+
+Disable alarm
+
+MegaCli -AdpSetProp AlarmDsbl -aALL
+
+Enable alarm
+
+MegaCli -AdpSetProp AlarmEnbl -aALL
+
+Physical drive management
+
+Set state to offline
+
+MegaCli -PDOffline -PhysDrv [E:S] -aN
+
+Set state to online
+
+MegaCli -PDOnline -PhysDrv [E:S] -aN
+
+Mark as missing
+
+MegaCli -PDMarkMissing -PhysDrv [E:S] -aN
+
+Prepare for removal
+
+MegaCli -PdPrpRmv -PhysDrv [E:S] -aN
+
+Replace missing drive
+
+MegaCli -PdReplaceMissing -PhysDrv [E:S] -ArrayN -rowN -aN
+
+The number N of the array parameter is the Span Reference you get using "MegaCli -CfgDsply -aALL" and the number N of the row parameter is the Physical Disk in that span or array starting with zero (it’s not the physical disk’s slot!).
+
+Rebuild drive
+
+MegaCli -PDRbld -Start -PhysDrv [E:S] -aN
+MegaCli -PDRbld -Stop -PhysDrv [E:S] -aN
+MegaCli -PDRbld -ShowProg -PhysDrv [E:S] -aN
+
+Clear drive
+
+MegaCli -PDClear -Start -PhysDrv [E:S] -aN
+MegaCli -PDClear -Stop -PhysDrv [E:S] -aN
+MegaCli -PDClear -ShowProg -PhysDrv [E:S] -aN
+
+Bad to good (or back to good as I like to call it)
+
+MegaCli -PDMakeGood -PhysDrv[E:S] -aN
+
+This changes drive in state Unconfigured-Bad to Unconfigured-Good.
+
+Walkthrough: Change/replace a drive
+
+Set the drive offline, if it is not already offline due to an error
+
+MegaCli -PDOffline -PhysDrv [E:S] -aN
+
+Mark the drive as missing
+
+MegaCli -PDMarkMissing -PhysDrv [E:S] -aN
+
+Prepare drive for removal
+
+MegaCli -PDPrpRmv -PhysDrv [E:S] -aN
+
+Change/replace the drive
+
+If you’re using hot spares then the replaced drive should become your new hot spare drive:
+
+MegaCli -PDHSP -Set -PhysDrv [E:S] -aN
+
+In case you’re not working with hot spares, you must re-add the new drive to your RAID virtual drive and start the rebuilding
+
+MegaCli -PdReplaceMissing -PhysDrv [E:S] -ArrayN -rowN -aN
+MegaCli -PDRbld -Start -PhysDrv [E:S] -aN
+
+
+
+
+
+
+
+
+omreport about details=true
+omreport chassis memory
+omreport system version
+
+Display the Hardware logs
+omreport system esmlog # the first line of this report reflect the general health status of your system BUT the storage domain
+The alert log
+omreport system alertlog
+The postlog (messages from the POST: Power On Self Test)
+omreport system postlog
+
+
+
+omreport storage -?
+omreport storage controller |grep ID
+omreport storage pdisk controller=0
+omreport storage pdisk controller=0 |grep -w "^ID"
+omreport storage vdisk controller=0
+omreport storage pdisk controller=0 vdisk=0
+omconfig system <log_to_be_cleared> action=clear
+omconfig system esmlog action=clear
+
+
+
+
+
+
+
+
+###################
+DEll
+
+/opt/MegaRAID/perccli/perccli64 /call/eall/sall show
+
+/opt/MegaRAID/perccli/perccli64 /call/bbu show status
+/opt/MegaRAID/perccli/perccli64 /call/eall/sall show all | grep -i batt
+
+perccli /cx show eventloginfo
+perccli /cx show termlog [type=config|contents] [logfile[=filename]]
+perccli /cx show sesmonitoring
+perccli /cx show failpdonsmarterror
+perccli /cx show freespace
+perccli /cx show cc|consistencycheck
+perccli /cx show ocr
+perccli /cx show
+perccli /cx show all [logfile[=filename]]
+perccli /cx show preservedcache
+perccli /cx show bootdrive
+perccli /cx show bootwithpinnedcache
+perccli /cx show activityforlocate
+perccli /cx show copyback
+perccli /cx show jbod
+perccli /cx show autorebuild
+perccli /cx show autopdcache
+perccli /cx show cachebypass
+perccli /cx show usefdeonlyencrypt
+perccli /cx show prcorrectunconfiguredareas
+perccli /cx show batterywarning
+perccli /cx show abortcconerror
+perccli /cx show ncq
+perccli /cx show configautobalance
+perccli /cx show maintainpdfailhistory
+perccli /cx show restorehotspare
+perccli /cx show bios
+perccli /cx show alarm
+perccli /cx show foreignautoimport
+perccli /cx show directpdmapping
+perccli /cx show rebuildrate
+perccli /cx show loadbalancemode
+perccli /cx show eghs
+perccli /cx show cacheflushint
+perccli /cx show prrate
+perccli /cx show ccrate
+perccli /cx show bgirate
+perccli /cx show dpm
+perccli /cx show sgpioforce
+perccli /cx show migraterate
+perccli /cx show spinupdrivecount
+perccli /cx show wbsupport
+perccli /cx show spinupdelay
+perccli /cx show coercion
+perccli /cx show limitMaxRateSATA
+perccli /cx show HDDThermalPollInterval
+perccli /cx show SSDThermalPollInterval
+perccli /cx show smartpollinterval
+perccli /cx show eccbucketsize
+perccli /cx show eccbucketleakrate
+perccli /cx show backplane
+perccli /cx show perfmode
+perccli /cx show perfmodevalues
+perccli /cx show pi
+perccli /cx show time
+perccli /cx show ds
+perccli /cx show safeid
+perccli /cx show rehostinfo
+perccli /cx show pci
+perccli /cx show ASO
+perccli /cx/px show
+perccli /cx/px show all
+perccli /cx show securitykey keyid
+perccli /cx show patrolRead
+perccli /cx show powermonitoringinfo
+perccli /cx show ldlimit
+perccli /cx show badblocks
+perccli /cx show dequeuelog file=<filepath>
+perccli /cx show maintenance
+perccli /cx show personality
+perccli /cx show jbodwritecache
+perccli /cx show immediateio
+perccli /cx show driveactivityled
+perccli /cx show largeiosupport
+perccli /cx show pdfailevents [lastoneday] [lastseqnum=<val>] [file=<filepath>]
+perccli /cx show pdfaileventoptions
+perccli /cx show AliLog [logfile[=filename]]
+perccli /cx show flushwriteverify
+perccli /cx show largeQD
+
+
+
+            ./MegaCli -AdpAllInfo -aALL
+
+
+
+

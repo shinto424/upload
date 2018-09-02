@@ -1,0 +1,115 @@
+Greetings team,
+
+As you may know we have different set of servers running Hadoop cluster. These are mainly IBM xSeries High Volume Racks (Ocean’s Hadoop project uses mainly IBM System x3630 M4 servers). These have different management boards called IMM/IMM2 and different RAID controllers with very odd configuration. Current list of servers attached.
+
+The Hadoop project uses 14 hard drives in chassis but only the 2 OS drives are in true mirror. The controller cannot work with mixed environment so the 12 data disks are also added to 12 virtual disk groups but without second drive in a mirror. This has big drawback: if the data drive fails whole virtual disk group is also lost. During failed disk replacement it is also required to recreate its disk group. If i.e. disk /dev/sdg breaks and gets replaced, the new drive might be be visible as /dev/sdg but can get new name like /dev/sdn. This is temporary and will last till reboot. In this case – be careful which drives you replace and which you create new filesystem on. Especially – DO NOT CORRECT FSTAB ENTRIES.
+
+This manual is for DATA disks only. OS disks in a mirror are replaced following normal replacement procedures.
+
+First of all – change request:
+Please contact business and agree on the time when the drive would be replaced. PROD servers require 3 days of lead time as they appear with medium risk. The implementation window should be at least 12 hours long. It’s even safe to set it to 24 hours as node decommission and re-commission takes several hours to complete. 
+The change request must have 3 tasks:
+a)	for SA team to unmount device and recreate FS
+b)	for DCSD team to replace faulty drive – also inform them that server’s chassis has 12 drive bays at the front and 2 at the back of the server (the last time it took 15 hours for the engineer to find failed drive when they went to the back of the rack to surprisingly find another bays).
+c)	for Application support team to (virtually) decommission the node in Hadoop before the replacement and re-commission the node after creating filesystem. This is required as Hadoop won’t start data replication without that. 
+
+Short StorCLI introduction:
+/cX – controller no. X
+/eX – enclosure no. X
+/sX – slot no. X
+/dX – disk group no. X
+/vX – vritual drive no. X
+
+---- The manual ----
+In this example the failed drive is /dev/sdl.
+1)	Pre steps - Identification:
+a.	Identify which drive has failed – have a look at the dmesg:
+EXT4-fs error (device sdl1): ext4_find_entry: reading directory #2 offset 0
+b.	Check StorCLI for information about failed drives. All servers have only one controller with ID 0. Root access required:
+# /opt/MegaRAID/storcli/storcli64 /c0  show all
+Sample output:
+<cut>
+PD LIST :
+=======
+
+------------------------------------------------------------------------------------------------
+EID:Slt DID State DG       Size Intf Med SED PI SeSz Model                                   Sp 
+------------------------------------------------------------------------------------------------
+8:0      12 Onln   0 464.729 GB SATA HDD N   N  512B WD5003ABYX-23        81Y9787 81Y3862IBM U  
+8:1      13 Onln   0 464.729 GB SATA HDD N   N  512B WD5003ABYX-23        81Y9787 81Y3862IBM U  
+8:2       9 Onln   1   3.638 TB SATA HDD N   N  512B WD4000FYYZ-23UL      49Y6003 49Y6006IBM U  
+8:3      10 Onln   2   3.638 TB SATA HDD N   N  512B WD4000FYYZ-23UL      49Y6003 49Y6006IBM U  
+8:4      14 Onln   3   3.638 TB SATA HDD N   N  512B WD4000FYYZ-23UL      49Y6003 49Y6006IBM U  
+8:5      22 Onln   4   3.638 TB SATA HDD N   N  512B WD4000FYYZ-23UL      49Y6003 49Y6006IBM U  
+8:6      20 Onln   5   3.638 TB SATA HDD N   N  512B WD4000FYYZ-23UL      49Y6003 49Y6006IBM U  
+8:7      15 Onln   6   3.638 TB SATA HDD N   N  512B WD4000FYYZ-23UL      49Y6003 49Y6006IBM U  
+8:8      16 Onln   7   3.638 TB SATA HDD N   N  512B WD4000FYYZ-23UL      49Y6003 49Y6006IBM U  
+8:9      21 Onln   8   3.638 TB SATA HDD N   N  512B WD4000FYYZ-23UL      49Y6003 49Y6006IBM U  
+8:10     17 Onln   9   3.638 TB SATA HDD N   N  512B WD4000FYYZ-23UL      49Y6003 49Y6006IBM U  
+8:11     19 Onln  10   3.638 TB SATA HDD N   N  512B WD4000FYYZ-23UL      49Y6003 49Y6006IBM U  
+8:12     11 UBad   -   3.638 TB SATA HDD N   N  512B WD4000FYYZ-23UL      49Y6003 49Y6006IBM U  
+8:13     18 Onln  11   3.638 TB SATA HDD N   N  512B WD4000FYYZ-23UL      49Y6003 49Y6006IBM U  
+<cut>
+
+Here we have failed disk at controller ID 0, enclosure ID 8, drive ID 12
+
+2)	Contact the application team for green zone and raise a change request. Contact DC team so they can order necessary drive. They don’t have spare drive with big capacity on-site.
+3)	The implementation – within change request implementation window:
+a.	check and unmount the drive (identified drive - /dev/sdl, mount point - /data/11):
+# mount
+<cut>
+/dev/sdl1 on /data/11 type ext4 (rw,noatime)
+<cut>
+# ls -al /data/11
+ls: reading directory /data/11: Input/output error
+total 0
+# umount /data/11
+
+b.	Give a go-ahead to the application team to decommission the node. It will take a couple of hours to complete. Can be done before or during filesystem unmount.
+c.	Enable drive’s LED indicator:
+# /opt/MegaRAID/storcli/storcli64 /c0 /e8 /s12 start locate
+Where 8 is enclosure ID, 12 is slot ID
+d.	Wait for the engineer on site to replace faulty drive
+e.	Check if old virtual disk is in cache:
+# /opt/MegaRAID/storcli/storcli64 /c0 show preservedCache
+Controller = 0
+Status = Success
+Description = None
+
+
+-----------
+VD State   
+-----------
+11 Missing 
+-----------
+
+if any VD is in the cache it needs to be deleted as it prevents from new virtual drive creation:
+# /opt/MegaRAID/storcli/storcli64 /c0 /v11 delete preservedcache
+where 11 – VD that contained failed drive.
+
+f.	Recreate virtual drive:
+# /opt/MegaRAID/storcli/storcli64 /c0 add vd type=raid0 drives=8:12
+Where 8 is enclosure ID and 12 is slot number of new drive.
+g.	Note the new device name. It may differ from the previous one. dmesg may help (here we have new drive shown as /dev/sdl):
+# dmesg | tail
+scsi 0:2:11:0: Direct-Access     IBM      ServeRAID M5110  3.34 PQ: 0 ANSI: 5
+sd 0:2:11:0: [sdl] 7812499456 512-byte logical blocks: (3.99 TB/3.63 TiB)
+sd 0:2:11:0: [sdl] 4096-byte physical blocks
+sd 0:2:11:0: [sdl] Write Protect is off
+sd 0:2:11:0: [sdl] Mode Sense: 1f 00 00 08
+sd 0:2:11:0: [sdl] Write cache: enabled, read cache: enabled, doesn't support DPO or FUA
+sd 0:2:11:0: Attached scsi generic sg12 type 0
+
+h.	create, tune FS and mount it  (old mount point for the drive stay the same for the new one - /export/11):
+# Parted /dev/sdl
+(parted) mklabel
+# choose Partition Table: gpt
+(parted) mkpart primary ext4 0% 100%
+(parted) quit
+# partprobe
+# mkfs.ext4 /dev/sdl1
+# tune2fs -m 0 /dev/sdl1
+# mount /dev/sdl1 /export/11
+
+i.	Notify the application team so they can re-commission the node
+

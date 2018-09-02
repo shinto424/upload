@@ -1,0 +1,94 @@
+Here is the HACMP 7.1 upgrade procedure listed out from the CATE doc. Attaching the CATE doc for reference. We would like to leverage the EMEA team for some of our servers for the HACMP upgrade.
+
+
+
+Pre-Requisites:
+1.	Make alt_disk for rootvg
+2.	Install Patchset13
+3.	Reboot both nodes
+4.	Check for available 1GB lun from the inq report and write it down before the upgrade
+5.	Save a snapshot of the current cluster from the active server
+smit hacmp-- Extended Configuration-- Snapshot Configuration-- Create a Snapshot of the Cluster Configuration
+6.	Sync the cluster information between the nodes before starting the upgrade
+                                
+
+
+
+
+Start HACMP 7.1 snapshot migration upgrade:
+
+0. Stop apps and shutdown hacmp cleanly on both nodes of the cluster
+
+Complete steps 1, 2, 3 & 4 on both nodes in the cluster
+
+1. Allocate the NIM and install base hacmp71
+# nimclient -o allocate -a lpp_source=lpp_hacmp71-p2
+# mount aixnimswdc1:/export/lpp_source/hacmp71-p2 /mnt
+# installp -ad /mnt IHS.hacmp71
+# umount /mnt
+# nimclient -o deallocate -a lpp_source=lpp_hacmp71-p2
+
+2. Install Pre-req for the OS
+#/opt/IHS.hacmp71/sbin/install prereq
+
+3. Add rhosts entries in /etc/cluster/rhosts
+aittsswu5.nam.nsroot.net
+aittsswu6.nam.nsroot.net
+
+4. Reboot both nodes
+#sync;sync;sync
+#shutdown -Fr now
+
+
+
+5. Execute steps 5, 6, 7 & 8 on the first node or the active node only
+# cd /usr/es/sbin/cluster/snapshots
+# clmigcheck
+Option 2 mention the saved snapshot name
+Option 3 select the CCR disk (available 1GB LUN)
+
+6. Uninstall PowerHA 6.1
+# installp -u cluster
+
+7. Install PowerHA 7.1 filesets
+# /opt/IHS.hacmp71/sbin/install hacmp
+Enter hacmp version (e.g. hacmp71-p1): hacmp71-p2
+..
+
+8. Restart clcomd daemon
+# stopsrc -s clcomd; startsrc -s clcomd
+
+
+9. Repeat steps 6, 7 & 8 only on the second node or the inactive node
+
+
+Execute steps 10 and 11 on the first node or the active node only
+10. Snapshot conversion
+Convert the snapshot to PowerHA 7.1
+#/usr/es/sbin/cluster/conversion/clconvert_snapshot -v 6.1 -s giwswu5_cluster_Dec4
+
+11. Restore snapshot
+# smitty cm_apply_snap.select
+
+
+12. Run the clmigcleanup script on all nodes one at a time to clean up the cluster configuration by removing heartbeat disks and redundant ODM entries
+# /usr/es/sbin/cluster/utilities/clmigcleanup
+
+13. Start the cluster on each node (smitty clstart)in turn.
+
+14. Following the upgrade the cluster should be sanity checked. In particular:
+- Check cluster network: lscluster -m
+- Check cluster topology: cltopinfo
+- Verify you can synchronize the cluster
+- Check that applications starr/stop and you can move resource groups
+- Test failure scenarios such as node failure, network failure, less of SAN connectivity.
+
+15. Remove the package IHS.hacmp which was used for PowerHA 6.1 installations on both nodes:
+# installp -u IHS.hacmp
+
+16. Disable Firstalias on active node
+smitty sysmirror --> Cluster Applications and Resources --> Resources --> configure Service IP Labels/Addresses --> Configure Service IP Label/Address Distribution Preferences --> Select the network
+Change Distribution Preference to "Disable Firstalias"
+
+
+

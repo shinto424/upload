@@ -1,0 +1,40 @@
+Disk replacement completed and mounted 
+
+
+/dev/sdb1                           3.6T  389G  3.3T  11% /data/1
+/dev/sdc1                           3.6T  222G  3.4T   7% /data/2
+/dev/sdd1                           3.6T  216G  3.4T   6% /data/3
+/dev/sde1                           3.6T  217G  3.4T   6% /data/4
+/dev/sdf1                           3.6T  214G  3.4T   6% /data/5
+/dev/sdg1                           3.6T  214G  3.4T   6% /data/6
+/dev/sdh1                           3.6T  212G  3.4T   6% /data/7
+/dev/sdi1                           3.6T  214G  3.4T   6% /data/8
+/dev/sdj1                           3.6T  218G  3.4T   6% /data/9
+/dev/sdk1                           3.6T  213G  3.4T   6% /data/10
+/dev/sdl1                           3.6T   70M  3.6T   1% /data/11
+/dev/sdm1                           3.6T  5.1G  3.6T   1% /data/12
+
+
+Team,
+
+Please  use below command to create VD if you get below highlighted error 
+
+MegaCli64 -CfgLdAdd -r<0 1 5> [enclosID:slotID] WB RA Direct CachedBadBBU -a0
+
+WB- write back is enabled
+RA- Read cache is adaptive
+
+?	/opt/MegaRAID/MegaCli/MegaCli64 -CfgLdAdd -r0 [8:12] WB RA Direct CachedBadBBU -a0
+
+
+[Dev root @ dsccr001d03i1d /var/tmp/checker]
+# /opt/MegaRAID/storcli/storcli64 /c0 add vd type=raid0 drives=8:12
+Controller = 0
+Status = Failure
+Description = physical disk does not have appropriate attributes
+
+[Dev root @ dsccr001d03i1d /var/tmp/checker]
+
+
+
+

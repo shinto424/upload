@@ -1,0 +1,79 @@
+
+
+T3-x / T4-x Solaris based install 
+The steps required to install the firmware on T3-x systems are as follows: 
+1. Logon to Solaris on the machine to be patched 
+2. Mount the directory where the patches are located 
+
+# /sbin/mount –o ro <patchserver>:<patchsetbasedir>/Patches /mnt 
+3. Copy the sysfwdownload binary and firmware image to a temporary directory 
+
+# cp /mnt/Sun/Firmware/<patchname>/sysfwdownload /tmp 
+# cp /mnt/Sun/Firmware/<patchname>/<firmware_image> /tmp 
+4. Download the firmware image to the system controller, this will take several minutes 
+
+# /tmp/sysfwdownload /tmp/<firmware_image> 
+5. Ensure that any current LDom configuration is saved in the SC[ldm add-config <config-name>] 
+6. Ensure any guest domains, and particularly the secondary IO domain (if configured) is shutdown, then shutdown the Solaris system: 
+
+# shutdown –i0 –g0 –y 
+7. Power off the system (if the host was halted the power may already have been removed): 
+
+-> stop /SYS 
+8. Check that power if off (this can take a few minutes) 
+
+-> show /SYS 
+9. Check the keyswitch state of the machine (if the first command shows keyswitch_state not Normal, reset using the second command) 
+
+-> show /SYS keyswitch_state 
+-> set /SYS keyswitch_state=Normal 
+10. Verify the image is for the correct platform (the sysfwdownload utility does not verify the file and platform match during the download) 
+
+-> show /SP/firmware/localimage 
+Good image output (blank lines suppressed): 
+/SP/firmware/localimage 
+Targets: 
+Properties: 
+upload_date = Tue Sep 25 11:10:15 2012 
+version = 3.0.16.8 
+Commands: 
+cd 
+show 
+Bad image output (blank lines suppressed): 
+/SP/firmware/localimage 
+Targets: 
+Properties: 
+upload_date = Tue Sep 25 11:32:26 2012 
+version = Invalid Image for this Platform 
+Commands: 
+cd 
+show 
+11. Record the values of the variables listed in Appendix C 
+12. Provided you have the correct firmware image loaded you can then install it 
+
+-> load -source /SP/firmware/localimage 
+13. The load command will output two prompts (answer y to both) 
+
+Are you sure you want to load the specified file (y/n)? 
+Do you want to preserve the configuration (y/n)? 
+14. Once the firmware has been uploaded the SC will be reset (if connected via the network the connection will be lost). 
+15. Check the values of the variables listed in Appendix C and reset as necessary, it is expected that the HOST/bootmode config will need to be reset to the appropriate value. 
+16. The Solaris environment can then be restarted using: 
+
+-> start /SYS
+
+
+
+System 	Current Patch 	Current FW Version 	update FW Patch 	Updated FW Version 
+T5120/T5220 	147307-15 	7.4.11 	147307-15 	7.4.11 
+T5240 	147310-15 	7.4.11 	147310-15 	7.4.11 
+T5440 	147311-13 	7.4.11 	147311-13 	7.4.11 
+T3-1 	152738-01 	8.3.40 	152738-01 	8.3.40 
+T3-2 	152739-01 	8.3.40 	152739-01 	8.3.40 
+T3-4 	152740-01 	8.3.40 	152740-01 	8.3.40 
+T4-1 	152475-04 	8.9.8 	152475-06 	8.9.9 
+T4-2 	152476-04 	8.9.8 	152476-06 	8.9.9 
+T4-4 	152477-04 	8.9.8 	152477-06 	8.9.9 
+T5-4 	26407365 	9.6.9.a 	27353278 	9.6.21.a 
+
+

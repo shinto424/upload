@@ -1,0 +1,119 @@
+hasys -add server1
+hasys -modify server1 SourceFile "./main.cf"
+hasys -add server2
+hasys -modify server2 SourceFile "./main.cf"
+
+Service group:
+-------------------
+hagrp -add SERVICEGROUP
+hagrp -modify SERVICEGROUP SystemList server1 0 server2 1
+hagrp -modify SERVICEGROUP AutoStartList server1
+hagrp -modify SERVICEGROUP SourceFile "./main.cf"
+
+hares -add SERVICEGROUP_NIC NIC SERVICEGROUP
+hares -modify SERVICEGROUP_NIC Device bond0
+hares -modify SERVICEGROUP_NIC PingOptimize 1
+hares -modify SERVICEGROUP_NIC Mii 1
+hares -modify SERVICEGROUP_NIC Enabled 1
+
+hares -add SERVICEGROUP_IP IP SERVICEGROUP
+hares -modify SERVICEGROUP_IP Device bond0
+hares -modify SERVICEGROUP_IP Address "VIP address"
+hares -modify SERVICEGROUP_IP NetMask "255.255.255.255"
+hares -modify SERVICEGROUP_IP PrefixLen 1000
+hares -modify SERVICEGROUP_IP Enabled 1
+
+srdf Disk group -> DG_NAME
+------------------------------
+hares -add SERVICEGROUP_DG_DG_NAME DiskGroup DISKGROUP_NAME
+hares -modify SERVICEGROUP_DG_DG_NAME DiskGroup DG_NAME
+hares -modify SERVICEGROUP_DG_DG_NAME StartVolumes 0
+hares -modify SERVICEGROUP_DG_DG_NAME StopVolumes 0
+hares -modify SERVICEGROUP_DG_DG_NAME PanicSystemOnDGLoss 1
+hares -modify SERVICEGROUP_DG_DG_NAME MonitorReservation 0
+hares -modify SERVICEGROUP_DG_DG_NAME tempUseFence INVALID
+hares -modify SERVICEGROUP_DG_DG_NAME DiskGroupType private
+hares -modify SERVICEGROUP_DG_DG_NAME Reservation ClusterDefault
+hares -modify SERVICEGROUP_DG_DG_NAME Enabled 1
+
+
+hares -add SERVICEGROUP_VOL_HOME Volume SERVICEGROUP
+hares -modify SERVICEGROUP_VOL_HOME DiskGroup DG_NAME
+hares -modify SERVICEGROUP_VOL_HOME Volume eqmotkhome
+hares -modify SERVICEGROUP_VOL_HOME Enabled 1
+
+hares -add SERVICEGROUP_MOUNT_HOME Mount SERVICEGROUP
+hares -modify SERVICEGROUP_MOUNT_HOME MountPoint "/optware/sybase/directory"
+hares -modify SERVICEGROUP_MOUNT_HOME BlockDevice "/dev/vx/dsk/DG_NAME/lv_name"
+hares -modify SERVICEGROUP_MOUNT_HOME FSType ext4
+hares -modify SERVICEGROUP_MOUNT_HOME MountOpt rw
+hares -modify SERVICEGROUP_MOUNT_HOME FsckOpt "%-y"
+hares -modify SERVICEGROUP_MOUNT_HOME SnapUmount 0
+hares -modify SERVICEGROUP_MOUNT_HOME CkptUmount 1
+hares -modify SERVICEGROUP_MOUNT_HOME Enabled 1
+
+std Disk Group -> DISKGROUP_NAME
+------------------------
+hares -add SERVICEGROUP_DG_DISKGROUP_NAME DiskGroup DISKGROUP_NAME
+hares -modify SERVICEGROUP_DG_DISKGROUP_NAME DiskGroup DISKGROUP_NAME
+hares -modify SERVICEGROUP_DG_DISKGROUP_NAME StartVolumes 0
+hares -modify SERVICEGROUP_DG_DISKGROUP_NAME StopVolumes 0
+hares -modify SERVICEGROUP_DG_DISKGROUP_NAME PanicSystemOnDGLoss 1
+hares -modify SERVICEGROUP_DG_DISKGROUP_NAME MonitorReservation 0
+hares -modify SERVICEGROUP_DG_DISKGROUP_NAME tempUseFence INVALID
+hares -modify SERVICEGROUP_DG_DISKGROUP_NAME DiskGroupType private
+hares -modify SERVICEGROUP_DG_DISKGROUP_NAME Reservation ClusterDefault
+hares -modify SERVICEGROUP_DG_DISKGROUP_NAME Enabled 1
+
+hares -add SERVICEGROUP_VOL_TEMP Volume SERVICEGROUP_NAME
+hares -modify SERVICEGROUP_VOL_TEMP DiskGroup DISKGROUP_NAME
+hares -modify SERVICEGROUP_VOL_TEMP Volume LV_NAME
+hares -modify SERVICEGROUP_VOL_TEMP Enabled 1
+
+hares -add SERVICEGROUP_VOL_DUMPS Volume SERVICEGROUP_NAME
+hares -modify SERVICEGROUP_VOL_DUMPS DiskGroup DISKGROUP_NAME
+hares -modify SERVICEGROUP_VOL_DUMPS Volume LV_NAME
+hares -modify SERVICEGROUP_VOL_DUMPS Enabled 1
+
+
+hares -add SERVICEGROUP_MOUNT_TEMP Mount SERVICEGROUP_NAME
+hares -modify SERVICEGROUP_MOUNT_TEMP MountPoint "/optware/sybase/directory"
+hares -modify SERVICEGROUP_MOUNT_TEMP BlockDevice "/dev/vx/dsk/DISKGROUP_NAME/LV_NAME"
+hares -modify SERVICEGROUP_MOUNT_TEMP FSType ext4
+hares -modify SERVICEGROUP_MOUNT_TEMP MountOpt rw
+hares -modify SERVICEGROUP_MOUNT_TEMP FsckOpt "%-y"
+hares -modify SERVICEGROUP_MOUNT_TEMP SnapUmount 0
+hares -modify SERVICEGROUP_MOUNT_TEMP CkptUmount 1
+hares -modify SERVICEGROUP_MOUNT_TEMP Enabled 1
+
+hares -add SERVICEGROUP_MOUNT_DUMPS Mount SERVICEGROUP_NAME
+hares -modify SERVICEGROUP_MOUNT_DUMPS MountPoint "/optware/sybase/directory"
+hares -modify SERVICEGROUP_MOUNT_DUMPS BlockDevice "/dev/vx/dsk/DISKGROUP_NAME/LV_NAME"
+hares -modify SERVICEGROUP_MOUNT_DUMPS FSType ext4
+hares -modify SERVICEGROUP_MOUNT_DUMPS MountOpt rw
+hares -modify SERVICEGROUP_MOUNT_DUMPS FsckOpt "%-y"
+hares -modify SERVICEGROUP_MOUNT_DUMPS SnapUmount 0
+hares -modify SERVICEGROUP_MOUNT_DUMPS CkptUmount 1
+hares -modify SERVICEGROUP_MOUNT_DUMPS Enabled 1
+
+hares -add SERVICEGROUP_trigger FileOnOff SERVICEGROUP_NAME
+hares -modify SERVICEGROUP_trigger PathName "/var/VRTSvcs/log/.SERVICEGROUP_trigger"
+hares -modify SERVICEGROUP_trigger Enabled 1
+
+=====================================================================================
+
+
+Link creation:
+
+hares -link SERVICEGROUP_IP SERVICEGROUP_NIC
+hares -link SERVICEGROUP_DG_DG_NAME SERVICEGROUP_IP
+hares -link SERVICEGROUP_DG_DISKGROUP_NAME SERVICEGROUP_IP
+
+hares -link SERVICEGROUP_VOL_HOME SERVICEGROUP_DG_DG_NAME 
+hares -link SERVICEGROUP_VOL_TEMP SERVICEGROUP_DG_DISKGROUP_NAME
+hares -link SERVICEGROUP_VOL_DUMPS SERVICEGROUP_DG_DISKGROUP_NAME
+
+hares -link SERVICEGROUP_MOUNT_HOME SERVICEGROUP_VOL_HOME 
+hares -link SERVICEGROUP_MOUNT_TEMP SERVICEGROUP_VOL_TEMP 
+hares -link SERVICEGROUP_MOUNT_DUMPS SERVICEGROUP_VOL_DUMPS
+

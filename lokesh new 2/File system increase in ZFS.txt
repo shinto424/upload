@@ -1,0 +1,153 @@
+Request Details:
+==============
+
+Please move 10g from /optware/oracle to /orabackup filesystem on tgmdb1d-node0 server. This will help us to complete DMF database refresh with PMF data (prod db).
+
+
+Pre-checks:
+=========
+
+Available space in ZFS pool is 1.54G only. Suppose if we have some more free space(ex.15G) in the pool we can directly increase the quota for the F/S . Here there is no enough space, so as DBA requested we have to allocate 10g to  /orabackup (having 76.6G free) from /optware/oracle(85.1G free).
+
+tgmdb1d-node0# zfs list 
+NAME                USED  AVAIL  REFER  MOUNTPOINT
+tgmdb1d             592G  1.54G    18K  /ZFS
+tgmdb1d/orabackup  25.4G  76.6G  25.4G  /orabackup
+tgmdb1d/oracle     16.4G  85.1G  16.4G  /optware/oracle
+tgmdb1d/oradata     325G  66.0G   325G  /oradata
+tgmdb1d/oradba     1.29M  2.00G  1.29M  /oradba
+……………………….
+tgmdb1d-node0# zpool list
+NAME      SIZE   USED  AVAIL    CAP  HEALTH  ALTROOT
+tgmdb1d   603G   367G   236G    60%  ONLINE  -
+……………………….
+tgmdb1d-node0# zpool status
+  pool: tgmdb1d
+state: ONLINE
+scrub: none requested
+config:
+
+        NAME           STATE     READ WRITE CKSUM
+        tgmdb1d        ONLINE       0     0     0
+          emcpower0c   ONLINE       0     0     0
+          emcpower12c  ONLINE       0     0     0
+          emcpower1c   ONLINE       0     0     0
+          emcpower2c   ONLINE       0     0     0
+          emcpower3c   ONLINE       0     0     0
+          emcpower4c   ONLINE       0     0     0
+          emcpower5c   ONLINE       0     0     0
+          emcpower6c   ONLINE       0     0     0
+          emcpower7c   ONLINE       0     0     0
+          emcpower8c   ONLINE       0     0     0
+          emcpower9c   ONLINE       0     0     0
+          emcpower10c  ONLINE       0     0     0
+          emcpower11c  ONLINE       0     0     0
+          emcpower13c  ONLINE       0     0     0
+          emcpower14c  ONLINE       0     0     0
+          emcpower15c  ONLINE       0     0     0
+          emcpower16c  ONLINE       0     0     0
+          emcpower17c  ONLINE       0     0     0
+
+errors: No known data errors
+……………………
+tgmdb1d-node0# df -h
+tgmdb1d                594G    18K   1.5G     1%    /ZFS
+tgmdb1d/oracle         103G    16G    85G    17%    /optware/oracle
+tgmdb1d/orabackup      102G    25G    77G    25%    /orabackup
+tgmdb1d/oradata        391G   325G    66G    84%    /oradata
+tgmdb1d/oradba         2.0G   1.3M   2.0G     1%    /oradba
+tgmdb1d-node0#
+
+To check the current parameters set for the File system(quota & reservation)
+
+Quota: Maximum amount of space that file system can utilize.
+
+Reservation: Dedicated space allocated to the file system(other file system cannot utilize the reserved space)
+
+Here,  for tgmdb1d/oracle total allocated space is 103G(quota) and dedicated space is 100G(reservation).
+Similiarly,for tgmdb1d/orabackup total allocated space is 102G(quota) and dedicated space is 101G(reservation).
+
+tgmdb1d-node0# zfs get all tgmdb1d/oracle|grep -i quota
+tgmdb1d/oracle  quota                 103G                   local
+tgmdb1d/oracle  refquota              none                   default
+
+tgmdb1d-node0# zfs get all tgmdb1d/oracle|grep -i reservation
+tgmdb1d/oracle  reservation           100G                   local
+tgmdb1d/oracle  refreservation        none                   default
+……………………….
+tgmdb1d-node0# zfs get all tgmdb1d/orabackup|grep -i quota
+tgmdb1d/orabackup  quota                 102G                   local
+tgmdb1d/orabackup  refquota              none                   default
+
+tgmdb1d-node0# zfs get all tgmdb1d/orabackup|grep -i reservation
+tgmdb1d/orabackup  reservation           101G                   local
+tgmdb1d/orabackup  refreservation        none                   default
+tgmdb1d-node0#
+…………………………..
+
+Command executed:
+
+zfs get all tgmdb1d/oracle|grep -i reservation
+zfs get all tgmdb1d/oracle|grep -i quota
+zfs set reservation=90g tgmdb1d/oracle
+zfs set quota=93g tgmdb1d/oracle
+
+zfs get all tgmdb1d/orabackup|grep -i quota
+zfs get all tgmdb1d/orabackup|grep -i reservation
+zfs set quota=112g tgmdb1d/orabackup
+zfs set reservation=111g tgmdb1d/orabackup
+
+Reducing 10G space( quota & reservation) on tgmdb1d/oracle:
+
+tgmdb1d-node0# zfs set reservation=90g tgmdb1d/oracle
+tgmdb1d-node0# zfs get all tgmdb1d/oracle|grep -i reservation
+tgmdb1d/oracle  reservation           90G                    local
+tgmdb1d/oracle  refreservation        none                   default
+tgmdb1d-node0# zfs set quota=93g tgmdb1d/oracle
+tgmdb1d-node0#  zfs get all tgmdb1d/oracle|grep -i quota
+tgmdb1d/oracle  quota                 93G                    local
+tgmdb1d/oracle  refquota              none                   default
+tgmdb1d-node0#
+………………………………
+
+After reducing the quota  & reservation size…the reduced size 10G will automatically go to zfspool free space(now u can see 11.5g).previously it was 1.54G.
+
+tgmdb1d-node0# zfs list
+NAME                USED  AVAIL  REFER  MOUNTPOINT
+tgmdb1d             582G  11.5G    18K  /ZFS
+tgmdb1d/orabackup  14.0G  88.0G  14.0G  /orabackup
+tgmdb1d/oracle     16.6G  76.4G  16.6G  /optware/oracle
+tgmdb1d/oradata     325G  66.0G   325G  /oradata
+tgmdb1d/oradba     1.29M  2.00G  1.29M  /oradba
+………………………………
+
+Increasing 10G (quota & reservation) on tgmdb1d/orabackup:
+
+tgmdb1d-node0# zfs set quota=112g tgmdb1d/orabackup
+tgmdb1d-node0#
+tgmdb1d-node0# zfs set reservation=111g tgmdb1d/orabackup
+tgmdb1d-node0#
+
+tgmdb1d-node0# zfs get all tgmdb1d/orabackup|grep -i quota
+tgmdb1d/orabackup  quota                 112G                   local
+tgmdb1d/orabackup  refquota              none                   default
+tgmdb1d-node0# zfs get all tgmdb1d/orabackup|grep -i reservation
+tgmdb1d/orabackup  reservation           111G                   local
+tgmdb1d/orabackup  refreservation        none                   default
+tgmdb1d-node0#
+……………………………..
+
+Post-check:
+===========
+
+As DBA requested 10G has been moved from /optware/oracle to /orabackup
+
+tgmdb1d-node0# df -h  /optware/oracle (previously size was 103G)
+Filesystem             size   used  avail capacity  Mounted on
+tgmdb1d/oracle          93G    17G    75G    19%    /optware/oracle
+
+tgmdb1d-node0# df -h /orabackup (Previously size was 102G)
+Filesystem             size   used  avail capacity  Mounted on
+tgmdb1d/orabackup      112G    14G    98G    13%    /orabackup
+tgmdb1d-node0#
+

@@ -1,0 +1,48 @@
+
+1. Create an alternate boot environment
+
+# lustatus
+Boot Environment           Is       Active Active    Can    Copy      
+Name                       Complete Now    On Reboot Delete Status    
+-------------------------- -------- ------ --------- ------ ----------
+KU7.1_SC3.3_lu_pool        yes      no     no        yes    -         
+KU7.6_lu_pool              yes      no     no        yes    -         
+KU7.6VXVM61SAN90_rpool     yes      no     no        yes    -         
+beforeSANmig_rpool         yes      no     no        yes    -         
+2017Q2_lu_pool             yes      no     no        yes    -         
+2017Q2_rpool               yes      no     no        yes    -         
+S10-Patches-2017-Q4        yes      yes    yes       no     -
+
+
+
+# lucreate -n S10-P18-Q1_rpool -p rpool
+Analyzing system configuration.
+Updating boot environment description database on all BEs.
+…..
+Population of boot environment < S10-Patches-2018-Q1> successful.
+Creation of boot environment < S10-Patches-2018-Q1> successful
+
+2. Mount the ABE(alternate boot environment) into a filesystem.
+# lumount S10-P18-Q1_rpool /a
+/a
+
+3. Package is in /var/tmp/S10-Patches-2018-Q1 (assuming the patch set is already copied and extracted in the location)
+#cd /var/tmp/S10-Patches-2018-Q1
+
+4. Install the prerequisite packages
+
+#./installpatchset --apply-prereq
+
+5. Install the patchset into Alternate boot environment
+#./installpatchset –R /a
+
+6. Unmount and activate the altenate boot environemnt
+# luumount /a
+# luactivate S10-P18-Q1_rpool
+
+7. Reboot the server
+Backout instruction will be printed in the terminal
+# init 6
+
+8.Once the server is rebooted perform checkouts
+

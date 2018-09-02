@@ -1,0 +1,37 @@
+1)      [Root] Identify all LUNs that will be used for database storage.  All LUNs should be of similar geometry and size.
+2)      [Root] Verify that the LUNs are configured for use by Oracle ASM:
+a.       Verify that a PVID is NOT assigned to the LUNs being used.  Use lspv to determine if a PVID is assigned.  For example,
+# lspv | grep hdiskpower6
+hdiskpower0       none        None
+If a PVID exists on the LUN, then it needs to be removed.  (First verify that the LUN is not being used.)  For Example,
+# chdev –l hdiskpower5 pv=clear
+Note: If this is on VIO, this step does not need to be performed.
+b.      Verify that the “reserve_lock” or “reserve_policy” is turned off.   If not, then change it.  For example, using LUNs controlled by EMC PowerPath where reserve_lock is on:
+# lsattr -El hdiskpower6 | grep reserve
+reserve_lock  yes    Reserve device on open     True 
+# chdev -l hdiskpower6 -a reserve_lock=no
+hdiskpower4 changed
+# lsattr -El hdiskpower6 | grep reserve
+reserve_lock  no     Reserve device on open     True
+
+      Note: If this is on VIO, this step does not need to be performed.
+ 
+c.       Create virtual devices for the ASM disk LUNs using the major and minor number for the related PowerPath devices.  For example, using our example setup: 
+# mknod /dev/asm_disk1 c 39 6
+# mknod /dev/asm_disk2 c 39 7 
+# mknod /dev/asm_disk3 c 39 8
+
+3)      [Root] Zero (Null) these devices (on ONE node only), 
+# dd if=/dev/zero of=/dev/<virtual_device> bs=8192 count=12800
+Perform this command for each of the virtual devices defined in step (2).  For example,
+# dd if=/dev/zero of=/dev/asm_disk1 bs=8192 count=25000
+# dd if=/dev/zero of=/dev/asm_disk2 bs=8192 count=25000 
+4)      [Root] Change ownership to oracle:dba and set permissions to 644 for each of the virtual devices.  For example,
+# chown oracle:dba /dev/asm_disk1
+# chown oracle:dba /dev/asm_disk2
+ 
+ 
+5)      [Root] RAC NOTE: Perform steps (1), (2), (3), and (5) on all other nodes in the cluster.
+
+
+

@@ -1,0 +1,64 @@
+Enabled secure + connection on NDM
+
+su - cduser
+/opt/cdunix/ndm/bin/spcli.sh
+
+SPCLI> sync netmap path=/opt/cdunix/ndm/cfg/<NDMNODE>/netmap.cfg name=<SNODE>;
+
+SPCLI> Display RemoteNode name=umtsapndm;
+
+SPCLI> Update RemoteNode name=umtsapndm protocol=tls override=n ssltlsenablecipher=(TLS_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_CBC_SHA);
+
+
+Disable Steps :
+==================
+isgswapu7n2u /opt/cdunix/ndm/bin]
+# ./spcli.sh
+   **************************************************************
+   *               Secure+ Command Line Interface               *
+   *              Connect:Direct for UNIX v4.0.00               *
+   *------------------------------------------------------------*
+   * Copyright (c) 1999, 2008 Sterling Commerce Inc.            *
+   * All Rights Reserved.                                       *
+   **************************************************************
+
+SPCLI> display remotenode name=abinappgtu01;
+
+  name=abinappgtu01
+  baserecord=abinappgtu01
+  type=r
+  protocol=defaulttoln
+  override=defaulttoln
+  authtimeout=120
+  stsenablesig=defaulttoln
+  stsenableautoupdate=defaulttoln
+  stslimitexportversion=y
+  stsenableenc=defaulttoln
+  stsencalgs=()
+  stsauthlocalkey=
+  stsauthremotekey=
+  stsprevauthkeyexpdatetime=
+  stssiglocalkey=
+  stssigremotekey=
+  stsprevsigkeyexpdatetime=
+  ssltlsseaenable=defaulttoln
+  seacertvaldef=
+  ssltlstrustedrootcertfile=
+  ssltlscertfile=
+  ssltlsenablefipsmode=defaulttoln
+  ssltlsenableclientauth=defaulttoln
+  ssltlscertcommonname=
+  ssltlsenablecipher=()
+
+
+SPCG520I rc=0 Display "abinappgtu01" command successful.
+
+SPCLI> update remotenode name=abinappgtu01 protocol=disable;
+SPCG470I rc=0 Update remote node "abinappgtu01" command successful.
+
+SPCLI> validate parmfile;
+
+SPCG150I rc=0 Validating node: abinappgtu01
+SPCG151W rc=4 Secure+ is disabled for this node.
+
+
